@@ -8,13 +8,100 @@
 <script type="text/javascript" src="../pub/cliengine.js"></script>
 <script type="text/javascript" src="../old_pub/util.js"></script>
 <style type="text/css">
-    .antHack-sub-box{width:320px; background:#e8f3fa; padding: 5px 5px 5px 15px; margin-bottom:10px}
-    .lf_lab, .ri_lab {width: 160px;float: left; text-align: right; font-weight: bold;}
-    .antHack-list li {width: 320px;}
-    .lf_but {padding-left: 160px}
+    .antHack-sub-box{background:#e8f3fa; padding: 5px 5px 5px 15px; margin-bottom:10px}
+    .lf_lab, .ri_lab {width: 180px;float: left; text-align: right; font-weight: bold;}
+    .antHack-list li {width: 360px;}
+    .lf_but {padding-left: 180px}
 </style>
 <script type="text/javascript">
+        /*Ruijie(config)# netshare-monitor
+        Ruijie(config-netshare-monitor)#monitor net 100.1.0.0 mask 255.255.0.0
+        Ruijie(config-netshare-monitor)#weight threshold 50
+        Ruijie(config-netshare-monitor)#local-wireless net 200.1.0.0 mask 255.255.0.0
+        Ruijie# show netshare monitor statistics
+        Monitor time   : 19:31:39
+        Online user    : 472 (Max 507)
+        Total detected : 30*/
+    var Dao = {
+        getNetInfo : function (){
+            var tmpObj = {monitorNetArr:[], wirelessNetArr:[], weight:''};
+                data = request('exec', 'show netshare monitor info'),
+                data = ["monitor net 100.1.0.0 mask 255.255.0.0","monitor net 192.168.1.0 mask 255.255.255.128","weight threshold 50","local-wireless net 200.1.0.0 mask 255.255.0.0"]
+                reg1 = /monitor net/,
+                reg2 = /(\d{1,3}\.){3}\d{1,3}/g,
+                reg3 = /local-wireless net/,
+                reg4 = /weight threshold/,
+                reg5 = /\d+/g;
+            for (var i = 0; i < data.length; i++) {
+                tmpArr = data[i].split(/\s+/);
+                if (data[i].match(reg1)) {tmpObj.monitorNetArr.push({
+                    net : data[i].match(reg2)[0],
+                    mask : data[i].match(reg2)[1]
+                })}
+                if (data[i].match(reg3)) {tmpObj.wirelessNetArr.push({
+                    net : data[i].match(reg2)[0],
+                    mask : data[i].match(reg2)[1]
+                })}
+                if (data[i].match(reg4)) {tmpObj.weight = data[i].match(reg5)[0]}
+            }
+            return tmpObj;
+        },
+        setData : function(){
 
+        },
+        getStatistics : function(){
+            var tmpObj = {};
+                data = request('exec', 'show netshare monitor statistics');
+                data =["Monitor time   : 21:31:39", "Online user    : 472 (Max 1507)", "Total detected : 40"]
+            for (var i = 0; i < data.length; i++) {
+                var tmpArr = data[i].split(':');
+                if (mt = data[i].match(/(\d{1,2}\:){2}\d{1,2}/g)) {
+                    tmpObj[$.trim(tmpArr[0])] = mt[0];
+                    continue;
+                }
+                tmpObj[$.trim(tmpArr[0])] = $.trim(tmpArr[1]);
+            }
+            return tmpObj;
+        }
+    }
+    function Page() {
+    }
+    Page.prototype = {
+        init                :   function(){
+            //初始化页面
+            this.render();
+            this.initEvent();
+        },
+        render  :   function(){
+            var self = this;
+                netObj = Dao.getNetInfo(),
+                statisticsObj = Dao.getStatistics();
+            self.netObj = netObj;
+            self.statisticsObj = statisticsObj;
+            var mNetStr = wNetStr = '';
+            for (var i = 0; i < netObj.monitorNetArr.length; i++) {
+                mNetStr += netObj.monitorNetArr[i].net + '/' + netObj.monitorNetArr[i].mask + '\n';
+            };
+            for (var i = 0; i < netObj.wirelessNetArr.length; i++) {
+                wNetStr += netObj.wirelessNetArr[i].net + '/' + netObj.wirelessNetArr[i].mask + '\n';
+            };
+            $('#txt_mNet').val(mNetStr);
+            $('#txt_wNet').val(wNetStr);
+            $('#inp_weight').val(netObj.weight);
+            //-------------------------//
+            $('#lab_time').text(statisticsObj['Monitor time']);
+            $('#lab_user').text(statisticsObj['Online user']);
+            $('#lab_total').text(statisticsObj['Total detected']);
+        },
+        initEvent           :   function(){
+            var self = this;
+        }
+    }
+
+    $(function(){
+        window.page = new Page();
+        page.init();
+    })
 </script>
 </head>
 <body class="root_box antHack">
@@ -30,21 +117,21 @@
             <div class="form-group">
                 <label class="lf_lab">监控的网络地址范围：</label>
                 <div>
-                    <textarea id="snmp_host" class="textNormal" cols="40" rows="4"></textarea>
+                    <textarea id="txt_mNet" class="textNormal" cols="40" rows="4"></textarea>
                     <em class="required">*</em>
-                    <span>每行一个IP或子网。子网与掩码以"/"分隔，如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                    <span>每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
                 </div>
             </div>
             <div class="form-group">
                 <label class="lf_lab">权重阈值：</label>
-                <div><input id="int_weight" class="input-txt" type="text" value="" size="42" maxlength="34" /></div>
+                <div><input id="inp_weight" class="input-txt" type="text" value="" size="42" maxlength="34" /></div>
             </div>
             <div  class="form-group">
                 <label class="lf_lab">本地无线网络地址范围：</label>
                 <div>
-                    <textarea id="snmp_host" class="textNormal" cols="40" rows="4"></textarea>
+                    <textarea id="txt_wNet" class="textNormal" cols="40" rows="4"></textarea>
                     <em class="required">*</em>
-                    <span>每行一个IP或子网。子网与掩码以"/"分隔，如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                    <span>每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
                 </div>
             </div>
             <div class="form-group">
@@ -56,9 +143,9 @@
         </h4>
         <div class="antHack-box mod-bd">
             <ul class="antHack-list antHack-sub-box clear" id="scan_protocol">
-                <li><label class="lf_lab">监控时间：</label><label class="ri_lab">19:31:39</label></li>
-                <li><label class="lf_lab">在线用户数：</label><label class="ri_lab">472 (Max 507)</label></li>
-                <li><label class="lf_lab">检测共享次数：</label><label class="ri_lab">30</label></li>
+                <li><label class="lf_lab">监控时间：</label><label class="ri_lab" id="lab_time">19:31:39</label></li>
+                <li><label class="lf_lab">在线用户数：</label><label class="ri_lab" id="lab_user">472 (Max 507)</label></li>
+                <li><label class="lf_lab">检测共享次数：</label><label class="ri_lab" id="lab_total">30</label></li>
             </ul>
         </div>
     </div>
