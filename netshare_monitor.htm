@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>网络共享监控配置</title>
+<link rel="stylesheet" type="text/css" href="../old_pub/eg_n.css">
+<script type="text/javascript" src="../pub/jquery.js"></script>
+<script type="text/javascript" src="../pub/cliengine.js"></script>
+<script type="text/javascript" src="../old_pub/util.js"></script>
+<style type="text/css">
+    .antHack-sub-box{width:320px; background:#e8f3fa; padding: 5px 5px 5px 15px; margin-bottom:10px}
+    .lf_lab, .ri_lab {width: 160px;float: left; text-align: right; font-weight: bold;}
+    .antHack-list li {width: 320px;}
+    .lf_but {padding-left: 160px}
+</style>
+<script type="text/javascript">
+
+</script>
+</head>
+<body class="root_box antHack">
+    <div class="alert">
+        <strong>说明：</strong><span>增大权重阈值，会降低误检率，并提高漏检率；减小权重阈值，会降低漏检率，并提高误检率。</span><br/>
+        <strong>注意：</strong><span>配置本地无线网络的地址范围，避免连接本地无线网络时被误判为网络共享。</span>
+    </div>
+    <div>
+        <h4 class="realt_hti">
+            <strong class="f_left">监控配置</strong>
+        </h4>
+        <div class="antHack-box mod-bd">
+            <div class="form-group">
+                <label class="lf_lab">监控的网络地址范围：</label>
+                <div>
+                    <textarea id="snmp_host" class="textNormal" cols="40" rows="4"></textarea>
+                    <em class="required">*</em>
+                    <span>每行一个IP或子网。子网与掩码以"/"分隔，如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="lf_lab">权重阈值：</label>
+                <div><input id="int_weight" class="input-txt" type="text" value="" size="42" maxlength="34" /></div>
+            </div>
+            <div  class="form-group">
+                <label class="lf_lab">本地无线网络地址范围：</label>
+                <div>
+                    <textarea id="snmp_host" class="textNormal" cols="40" rows="4"></textarea>
+                    <em class="required">*</em>
+                    <span>每行一个IP或子网。子网与掩码以"/"分隔，如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="lf_but"><button id="J_Save" type="button" class='button_bdeep'>保存设置</button></div>
+            </div>
+        </div>
+        <h4 class="realt_hti">
+            <strong class="f_left">监控统计</strong>
+        </h4>
+        <div class="antHack-box mod-bd">
+            <ul class="antHack-list antHack-sub-box clear" id="scan_protocol">
+                <li><label class="lf_lab">监控时间：</label><label class="ri_lab">19:31:39</label></li>
+                <li><label class="lf_lab">在线用户数：</label><label class="ri_lab">472 (Max 507)</label></li>
+                <li><label class="lf_lab">检测共享次数：</label><label class="ri_lab">30</label></li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
