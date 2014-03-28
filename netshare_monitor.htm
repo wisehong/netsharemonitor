@@ -95,10 +95,16 @@
         },
         render  :   function(){
             var self = this;
-                netObj = Dao.getNetInfo(),
-                statisticsObj = Dao.getStatistics();
-            self.netObj = netObj;
+            self.renderNetInfo();
+            self.timerID && clearTimeout(this.timerID);
+            self.timerID = setInterval(function() {
+                self.renderStatistics();
+            }, 1000);
+        },
+        renderNetInfo : function(){
             var mNetStr = wNetStr = '';
+            var netObj = Dao.getNetInfo();
+            this.netObj = netObj;
             for (var i = 0; i < netObj.monitorNetArr.length; i++) {
                 mNetStr += netObj.monitorNetArr[i].net + '/' + netObj.monitorNetArr[i].mask + '\n';
             };
@@ -108,7 +114,9 @@
             $('#txt_mNet').val(mNetStr);
             $('#txt_wNet').val(wNetStr);
             $('#inp_weight').val(netObj.weight);
-            //-------------------------//
+        },
+        renderStatistics : function (){
+            var statisticsObj = Dao.getStatistics();
             $('#lab_time').text(statisticsObj['Monitor time']);
             $('#lab_user').text(statisticsObj['Online user']);
             $('#lab_total').text(statisticsObj['Total detected']);
@@ -188,7 +196,9 @@
                     })
                 };
                 var result = Dao.setData(config);
-                if (result.length ==0) {alert('配置成功!')};
+                if (result.length ==0) {
+                    alert('配置成功!');
+                    self.render()};
             });
         }
     }
