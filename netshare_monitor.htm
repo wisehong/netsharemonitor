@@ -12,6 +12,7 @@
     .lf_lab, .ri_lab {width: 180px;float: left; text-align: right; font-weight: bold;}
     .antHack-list li {width: 360px;}
     .lf_but {padding-left: 180px}
+    .cl_span {color: gray; padding-left: 7px;}
 </style>
 <script type="text/javascript">
         /*Ruijie(config)# netshare-monitor
@@ -46,8 +47,28 @@
             }
             return tmpObj;
         },
-        setData : function(){
-
+        setData : function(config){
+            //配置前先清除之前的配置
+            var cmd = '', arr = page.netObj.monitorNetArr;
+            for (var i = 0; i < arr.length; i++) {
+                cmd += 'no monitor net ' + arr[i].net + ' mask ' + arr[i].mask + '\r\n';
+            }
+            arr = page.netObj.wirelessNetArr;
+            for (var i = 0; i < arr.length; i++) {
+                cmd += 'no local-wireless net ' + arr[i].net + ' mask ' + arr[i].mask + '\r\n';
+            }
+            //下发当前配置
+            arr = config.monitorNetArr;
+            for (var i = 0; i < arr.length; i++) {
+                cmd += 'monitor net ' + arr[i].net + ' mask ' + arr[i].mask + '\r\n';
+            }
+            cmd += 'weight threshold ' + config.weight + '\r\n';
+            arr = config.wirelessNetArr;
+            for (var i = 0; i < arr.length; i++) {
+                cmd += 'local-wireless net ' + arr[i].net + ' mask ' + arr[i].mask + '\r\n';
+            };
+            alert(cmd);
+            return [];
         },
         getStatistics : function(){
             var tmpObj = {};
@@ -64,12 +85,12 @@
             return tmpObj;
         }
     }
-    function Page() {
-    }
+    function Page() {}
     Page.prototype = {
         init                :   function(){
             //初始化页面
             this.render();
+            this.initValidator();
             this.initEvent();
         },
         render  :   function(){
@@ -77,7 +98,6 @@
                 netObj = Dao.getNetInfo(),
                 statisticsObj = Dao.getStatistics();
             self.netObj = netObj;
-            self.statisticsObj = statisticsObj;
             var mNetStr = wNetStr = '';
             for (var i = 0; i < netObj.monitorNetArr.length; i++) {
                 mNetStr += netObj.monitorNetArr[i].net + '/' + netObj.monitorNetArr[i].mask + '\n';
@@ -93,8 +113,83 @@
             $('#lab_user').text(statisticsObj['Online user']);
             $('#lab_total').text(statisticsObj['Total detected']);
         },
-        initEvent           :   function(){
+        initValidator : function(){
             var self = this;
+            self.pageValidator =  new rui.Validator({
+                    fields:[
+                        {field : "txt_mNet",rules:[{type:"netCheck",msg:function(){return self.errorMsg}}]},
+                        {field : "inp_weight",rules:[{type:"integer"}]},
+                        {field : "txt_wNet",rules:[{type:"netCheck",msg:function(){return self.errorMsg}}]}
+                    ],
+                    position : {
+                        appTo : 'body'
+                    }
+            });
+            self.pageValidator.extendCheckFun({
+                netCheck : function(str){
+                    self.errorMsg = '';
+                    var tmpArr = str.split(/[\n]/);
+                    var num = 0;
+                    for (var i = 0; i < tmpArr.length; i++) {
+                        tmpArr[i] = $.trim(tmpArr[i]);
+                        num += 1;
+                        if (tmpArr[i].length == 0) {
+                            num -= 1;
+                            continue;
+                        }
+                        if (tmpArr[i].indexOf('/') != -1) {
+                            var subnet = tmpArr[i].split('/')[0];
+                            var mask = tmpArr[i].split('/')[1];
+                            if (!Util.validateIP(subnet)) {
+                                self.errorMsg = '第'+ num +'个子网的IP输入错误！';
+                                return false;
+                            }
+                            if (!Util.validateMask(mask)) {
+                                self.errorMsg = '第'+ num +'个子网的掩码输入错误！';
+                                return false;
+                            }
+                            if (!Util.validateSubnet(subnet, mask)) {
+                                self.errorMsg = '第'+ num +'个子网的IP和掩码不匹配！';
+                                return false;
+                            }
+                        }else {
+                            self.errorMsg = '第' + num + '个网段输入错误！';
+                            return false;
+                        }
+                    }
+
+                    return self.errorMsg == '';
+                }
+            })
+        },
+        initEvent : function(){
+            var self = this;
+            $('#J_Save').click(function(event) {
+                /* Act on the event */
+                if (!self.pageValidator.validate()) {return false};
+                var config = {monitorNetArr:[], wirelessNetArr:[], weight:''};
+                var txt_mNet = $('#txt_mNet').val();
+                var lineArr = txt_mNet.split(/[\n]/);
+                for (var i = 0; i < lineArr.length; i++) {
+                    netArr = lineArr[0].split('/');
+                    config.monitorNetArr.push({
+                        net : $.trim(netArr[0]),
+                        mask : $.trim(netArr[1])
+                    })
+                };
+                config.weight = $.trim($('#inp_weight').val());
+                var txt_wNet = $('#txt_wNet').val();
+                var lineArr = txt_wNet.split(/[\n]/);
+                for (var i = 0; i < lineArr.length; i++) {
+                    netArr = lineArr[0].split('/');
+                    config.wirelessNetArr.push({
+                        net : $.trim(netArr[0]),
+                        mask : $.trim(netArr[1])
+                    })
+                };
+                var result = Dao.setData(config);
+                if (result.length ==0) {alert('配置成功!')};
+            });
         }
     }
 
@@ -118,20 +213,21 @@
                 <label class="lf_lab">监控的网络地址范围：</label>
                 <div>
                     <textarea id="txt_mNet" class="textNormal" cols="40" rows="4"></textarea>
-                    <em class="required">*</em>
-                    <span>每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                    <span class="cl_span">每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
                 </div>
             </div>
             <div class="form-group">
                 <label class="lf_lab">权重阈值：</label>
-                <div><input id="inp_weight" class="input-txt" type="text" value="" size="42" maxlength="34" /></div>
+                <div>
+                    <input id="inp_weight" class="input-txt" type="text" value="40" maxlength="5" />
+                    <span class="cl_span">默认为40</span>
+                </div>
             </div>
             <div  class="form-group">
                 <label class="lf_lab">本地无线网络地址范围：</label>
                 <div>
                     <textarea id="txt_wNet" class="textNormal" cols="40" rows="4"></textarea>
-                    <em class="required">*</em>
-                    <span>每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
+                    <span class="cl_span">每行一个子网，子网格式如“10.10.0.0/255.255.255.0”。最多配置32个。</span>
                 </div>
             </div>
             <div class="form-group">
